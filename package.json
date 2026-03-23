@@ -1,6 +1,7 @@
 {
   "name": "mentorbridge",
   "version": "1.0.0",
+  "main": "server/server.js",
   "description": "AI-powered mentorship and career acceleration platform",
   "scripts": {
     "start": "node server/server.js",
