@@ -1,0 +1,39 @@
+.roadmap-page{display:flex;flex-direction:column;gap:24px;max-width:1100px;animation:fadeUp .4s ease both}
+.roadmap-header h1{font-size:2rem;margin-bottom:6px}
+.roadmap-generator{background:var(--surface-raised);border:1px solid rgba(108,99,255,.3);border-radius:var(--r-xl);padding:24px;box-shadow:var(--shadow-accent)}
+.gen-form{display:flex;gap:12px}
+.gen-input{flex:1;background:var(--surface-float);border:1px solid var(--border);border-radius:var(--r-lg);padding:.75rem 16px;color:var(--text-primary);font-family:var(--font-display);font-size:.9rem;outline:none;transition:all var(--t-mid)}
+.gen-input::placeholder{color:var(--text-muted)}
+.gen-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.roadmap-grid{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
+.roadmap-list-panel{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;display:flex;flex-direction:column;gap:14px;position:sticky;top:calc(64px + 24px)}
+.roadmap-list-panel h3{font-size:1rem;font-weight:700}
+.no-roadmaps{font-size:.85rem;color:var(--text-muted);text-align:center;padding:20px 0}
+.roadmap-item{display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:var(--surface-float);border:1px solid var(--border);border-radius:var(--r-md);text-align:left;cursor:pointer;transition:all var(--t-mid)}
+.roadmap-item:hover{border-color:var(--accent);background:var(--ink-mid)}
+.roadmap-item.active{background:var(--accent-glow);border-color:rgba(108,99,255,.4)}
+.ri-title{font-size:.85rem;font-weight:600;color:var(--text-primary)}
+.ri-progress{display:flex;align-items:center;gap:8px}
+.ri-bar{flex:1;height:4px;background:var(--border);border-radius:99px;overflow:hidden}
+.ri-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .5s ease}
+.roadmap-detail{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-xl);padding:24px;min-height:400px}
+.roadmap-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;height:100%;min-height:300px;text-align:center;color:var(--text-muted)}
+.rd-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.rd-progress-circle{position:relative;width:56px;height:56px;flex-shrink:0}
+.rd-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:var(--accent)}
+.steps-list{display:flex;flex-direction:column;gap:14px}
+.step-item{display:flex;gap:14px;padding:16px;background:var(--surface-float);border:1px solid var(--border);border-radius:var(--r-lg);transition:all var(--t-mid)}
+.step-item.done{border-color:rgba(0,212,170,.3);background:rgba(0,212,170,.04)}
+.step-item:hover{border-color:var(--accent)}
+.step-check{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-family:var(--font-mono);color:var(--text-muted);flex-shrink:0;cursor:pointer;transition:all var(--t-mid)}
+.step-item.done .step-check{background:var(--accent-mint);border-color:var(--accent-mint);color:var(--ink);font-weight:700}
+.step-check:hover{border-color:var(--accent);color:var(--accent)}
+.step-body{flex:1;display:flex;flex-direction:column;gap:6px}
+.step-title{font-size:.9rem;font-weight:600;color:var(--text-primary)}
+.step-item.done .step-title{text-decoration:line-through;color:var(--text-muted)}
+.step-desc{font-size:.82rem;color:var(--text-secondary)}
+.step-resources{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.resource-link{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-full);font-size:.72rem;color:var(--accent);text-decoration:none;transition:all var(--t-fast)}
+.resource-link:hover{border-color:var(--accent);background:var(--accent-glow)}
+.resource-type{font-size:.62rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.04em}
+@media(max-width:900px){.roadmap-grid{grid-template-columns:1fr}.roadmap-list-panel{position:static}.gen-form{flex-direction:column}}

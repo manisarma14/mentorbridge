@@ -1,0 +1,46 @@
+.progress-page{display:flex;flex-direction:column;gap:22px;max-width:900px;animation:fadeUp .4s ease both}
+.progress-header h1{font-size:2rem;margin-bottom:6px}
+.progress-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.ov-card{display:flex;align-items:center;gap:14px;padding:18px 20px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-lg);transition:all var(--t-mid)}
+.ov-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.ov-icon{font-size:1.4rem}
+.ov-accent .ov-icon{color:var(--accent)}.ov-mint .ov-icon{color:var(--accent-mint)}.ov-amber .ov-icon{color:var(--accent-amber)}
+.ov-body{flex:1}
+.ov-val{font-size:1.5rem;font-weight:800;color:var(--text-primary);line-height:1}
+.ov-lbl{font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+.ov-pct{font-size:1.3rem;font-weight:800;color:var(--accent);font-family:var(--font-mono)}
+.overall-progress{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px}
+.op-header{display:flex;justify-content:space-between;font-size:.875rem;color:var(--text-secondary);margin-bottom:10px}
+.op-track{height:8px;background:var(--surface-float);border-radius:99px;overflow:hidden}
+.op-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-mint));border-radius:99px;transition:width 1s ease}
+.progress-empty{text-align:center;padding:40px;color:var(--text-muted);font-size:.875rem;display:flex;flex-direction:column;align-items:center}
+.roadmap-progress-list{display:flex;flex-direction:column;gap:14px}
+.rp-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;display:flex;flex-direction:column;gap:14px;transition:border-color var(--t-mid)}
+.rp-card:hover{border-color:rgba(108,99,255,.3)}
+.rp-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.rp-title{font-size:.95rem;font-weight:700;color:var(--text-primary)}
+.rp-goal{font-size:.78rem;color:var(--text-muted);margin-top:3px}
+.rp-bar-row{display:flex;align-items:center;gap:10px}
+.rp-track{flex:1;height:6px;background:var(--surface-float);border-radius:99px;overflow:hidden}
+.rp-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-mint));border-radius:99px;transition:width .8s ease}
+.rp-pct{font-size:.75rem;color:var(--accent);font-weight:700;min-width:32px;text-align:right}
+.rp-steps{display:flex;flex-direction:column;gap:6px}
+.rp-step{display:flex;align-items:center;gap:10px;font-size:.82rem;color:var(--text-secondary);padding:4px 0;border-bottom:1px solid var(--border-soft)}
+.rp-step:last-child{border-bottom:none}
+.rp-step span:first-child{font-family:var(--font-mono);font-size:.7rem;color:var(--text-muted);min-width:20px}
+.rp-step.done{color:var(--text-muted)}
+.rp-step.done span:first-child{color:var(--accent-mint)}
+.rp-step.done span:last-child{text-decoration:line-through}
+.connections-section{display:flex;flex-direction:column;gap:14px}
+.connections-section h3{font-size:1rem;font-weight:700}
+.connections-list{display:flex;flex-direction:column;gap:8px}
+.conn-card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--r-md)}
+.conn-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#8b83ff);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:white;flex-shrink:0}
+.conn-info{flex:1}
+.conn-name{font-size:.875rem;font-weight:600;color:var(--text-primary)}
+.conn-role{font-size:.72rem;color:var(--text-muted)}
+.conn-status{font-size:.7rem;font-weight:600;padding:3px 10px;border-radius:var(--r-full);text-transform:uppercase;letter-spacing:.04em}
+.status-accepted{background:rgba(0,212,170,.1);color:var(--accent-mint);border:1px solid rgba(0,212,170,.3)}
+.status-pending{background:rgba(255,184,48,.1);color:var(--accent-amber);border:1px solid rgba(255,184,48,.3)}
+.status-rejected{background:rgba(255,107,107,.1);color:var(--accent-hot);border:1px solid rgba(255,107,107,.3)}
+@media(max-width:600px){.progress-overview{grid-template-columns:1fr}}

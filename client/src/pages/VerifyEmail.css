@@ -1,0 +1,70 @@
+.verify-card { text-align: center; }
+.verify-icon { font-size: 2.5rem; margin-bottom: 8px; }
+.verify-email { color: var(--accent); font-size: .95rem; display: block; margin-top: 4px; }
+
+.otp-form { display: flex; flex-direction: column; gap: 20px; margin-top: 24px; }
+
+.otp-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.otp-input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  background: var(--surface-float);
+  border: 2px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  outline: none;
+  transition: all var(--t-mid);
+  caret-color: var(--accent);
+}
+
+.otp-input:focus {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.otp-input.filled {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.otp-input.error {
+  border-color: var(--accent-hot);
+  animation: shake .4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60%  { transform: translateX(-4px); }
+  40%, 80%  { transform: translateX(4px); }
+}
+
+.verify-resend {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.resend-btn {
+  font-size: .83rem;
+  color: var(--accent);
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  transition: opacity var(--t-fast);
+}
+
+.resend-btn:hover   { opacity: .75; }
+.resend-btn:disabled { opacity: .4; cursor: not-allowed; }
