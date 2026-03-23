@@ -9,9 +9,6 @@ const app = express();
 
 // ── Security ──
 app.use(helmet());
-const cors = require("cors");
-
-const cors = require("cors");
 
 app.use(cors({
   origin: [
@@ -23,7 +20,7 @@ app.use(cors({
 
 // ── Rate limiting ──
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: 'Too many requests, please try again later.' },
 });
@@ -44,13 +41,13 @@ app.get('/api/health', (_req, res) => {
 });
 
 // ── Routes ──
-app.use('/api/auth',         require('./routes/authRoutes'));
-app.use('/api/users',        require('./routes/userRoutes'));
-app.use('/api/mentors',      require('./routes/mentorRoutes'));
-app.use('/api/messages',     require('./routes/messageRoutes'));
-app.use('/api/connections',  require('./routes/connectionRoutes'));
-app.use('/api/ai',           require('./routes/aiRoutes'));
-app.use('/api/notifications',require('./routes/notificationRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/mentors', require('./routes/mentorRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/connections', require('./routes/connectionRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // ── 404 + Error handlers ──
 app.use(notFound);
