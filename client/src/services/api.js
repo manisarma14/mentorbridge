@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL + '/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
@@ -17,15 +17,12 @@ api.interceptors.response.use(
   err => {
     const data = err.response?.data
 
-    // Session expired
     if (err.response?.status === 401) {
       localStorage.removeItem('mb_token')
       localStorage.removeItem('mb_user')
       window.location.href = '/login'
     }
 
-    // Email not verified — pass the full response data as the error
-    // so LoginPage can detect emailUnverified flag
     if (err.response?.status === 403 && data?.emailUnverified) {
       return Promise.reject(data)
     }
