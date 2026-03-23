@@ -9,13 +9,7 @@ const app = express();
 
 // ── Security ──
 app.use(helmet());
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://mentorbridge.vercel.app"
-  ],
-  credentials: true,
-}));
+app.use(cors({ origin: "*" }))
 
 // ── Rate limiting ──
 const limiter = rateLimit({
