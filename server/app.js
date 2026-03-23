@@ -11,19 +11,13 @@ const app = express();
 app.use(helmet());
 const cors = require("cors");
 
+const cors = require("cors");
+
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-
-    if (
-      origin === "http://localhost:5173" ||
-      origin === "https://mentorbridge.vercel.app"
-    ) {
-      return callback(null, true);
-    }
-
-    return callback(new Error("Not allowed by CORS"));
-  },
+  origin: [
+    "http://localhost:5173",
+    "https://mentorbridge.vercel.app"
+  ],
   credentials: true,
 }));
 
