@@ -40,6 +40,10 @@ app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'MentorBridge API is running', timestamp: new Date() });
 });
 
+app.get('/test123', (req, res) => {
+  res.send("NEW CODE WORKING");
+});
+
 // ── Routes ──
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
