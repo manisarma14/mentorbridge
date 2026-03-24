@@ -40,8 +40,8 @@ app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'MentorBridge API is running', timestamp: new Date() });
 });
 
-app.get('/test123', (req, res) => {
-  res.send("NEW CODE WORKING");
+app.get('/manitest', (req, res) => {
+  res.send("MANI TEST WORKING");
 });
 
 // ── Routes ──
