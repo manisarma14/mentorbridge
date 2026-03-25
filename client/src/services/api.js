@@ -20,7 +20,7 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('mb_token')
       localStorage.removeItem('mb_user')
-      window.location.href = '/login'
+      
     }
 
     if (err.response?.status === 403 && data?.emailUnverified) {
