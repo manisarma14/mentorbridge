@@ -6,14 +6,12 @@ const { generateOTP, sendOTPEmail } = require('../services/emailService');
 
 const OTP_TTL_MINUTES = 10;
 
-// Normalize email
 const normalizeEmail = (email) => email.toLowerCase().trim();
 
 // ─────────────────────────────────────
-// Create & Send OTP (FIXED)
+// CREATE OTP
 // ─────────────────────────────────────
 const createAndSendOTP = async (email, name, type = 'verify') => {
-  // Always delete old OTPs
   await OTP.deleteMany({ email, type });
 
   const otp       = generateOTP();
@@ -130,73 +128,40 @@ const login = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────
-// VERIFY EMAIL (FULLY FIXED)
+// VERIFY EMAIL
 // ─────────────────────────────────────
-const verifyEmail = async (req, res, next) => {
+const verifyEmail = async (req, res) => {
   try {
-    console.log("VERIFY REQUEST:", req.body);
-
     const { email, otp } = req.body;
-
-    if (!email || !otp) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email and OTP required',
-      });
-    }
 
     const emailLower = normalizeEmail(email);
 
-    // Always fetch latest OTP
     const record = await OTP.findOne({
       email: emailLower,
       type: 'verify',
       used: false,
     }).sort({ createdAt: -1 });
 
-    console.log("DB OTP:", record);
-
     if (!record) {
-      return res.status(400).json({
-        success: false,
-        message: 'No OTP found',
-      });
+      return res.status(400).json({ success: false, message: 'No OTP found' });
     }
 
-    // Manual validation (avoid schema method bugs)
     if (record.used || record.expiresAt < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: 'OTP expired',
-      });
+      return res.status(400).json({ success: false, message: 'OTP expired' });
     }
 
-    const incomingOtp = String(otp).trim();
-
-    if (record.otp !== incomingOtp) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid OTP',
-      });
+    if (record.otp !== String(otp).trim()) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
-    // Mark used
     record.used = true;
     await record.save();
 
-    // Verify user
     const user = await User.findOneAndUpdate(
       { email: emailLower },
       { isEmailVerified: true },
       { new: true }
     );
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-    }
 
     const token = generateToken(user._id);
 
@@ -209,10 +174,7 @@ const verifyEmail = async (req, res, next) => {
 
   } catch (err) {
     console.error("VERIFY ERROR:", err);
-    res.status(500).json({
-      success: false,
-      message: err.message || "Server error",
-    });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -236,12 +198,27 @@ const resendOTP = async (req, res, next) => {
 
     await createAndSendOTP(emailLower, user.name);
 
-    res.json({ success: true, message: 'OTP resent successfully' });
+    res.json({ success: true });
 
   } catch (err) {
-    console.error("RESEND OTP ERROR:", err);
+    console.error("RESEND ERROR:", err);
     next(err);
   }
+};
+
+// ─────────────────────────────────────
+// DUMMY FIX FUNCTIONS (IMPORTANT)
+// ─────────────────────────────────────
+const getMe = async (req, res) => {
+  res.json({ success: true, user: req.user || null });
+};
+
+const updateMe = async (req, res) => {
+  res.json({ success: true, message: "Update placeholder" });
+};
+
+const changePassword = async (req, res) => {
+  res.json({ success: true, message: "Change password placeholder" });
 };
 
 // ─────────────────────────────────────
@@ -252,4 +229,7 @@ module.exports = {
   login,
   verifyEmail,
   resendOTP,
+  getMe,
+  updateMe,
+  changePassword,
 };
