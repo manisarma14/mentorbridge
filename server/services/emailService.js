@@ -1,54 +1,27 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// ─────────────────────────────────────────────────────────
-// Transporter — always use real SMTP when SMTP_USER is set
-// ─────────────────────────────────────────────────────────
-const createTransporter = () => {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('⚠️  SMTP_USER or SMTP_PASS not set — emails will only be logged to console');
-    return null;
-  }
+// ── Resend client — uses HTTPS, works on Render free tier ──
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  const transporter = nodemailer.createTransport({
-    service: process.env.SMTP_SERVICE || 'gmail',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
+if (!process.env.RESEND_API_KEY) {
+  console.warn('⚠️  RESEND_API_KEY not set — emails will only be logged to console');
+} else {
+  console.log('✅ Resend email service ready');
+}
 
-  // Verify on first use so errors are visible immediately
-  transporter.verify((err) => {
-    if (err) {
-      console.error('❌ SMTP connection failed:', err.message);
-      console.error('   → Check SMTP_USER and SMTP_PASS in your .env');
-      console.error('   → Gmail requires an App Password (not your account password)');
-      console.error('   → Get one at: https://myaccount.google.com/apppasswords');
-    } else {
-      console.log(`✅ SMTP ready — sending from ${process.env.SMTP_USER}`);
-    }
-  });
-
-  return transporter;
-};
-
-// Create once at module load time
-const transporter = createTransporter();
-
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────
 // Generate 6-digit OTP
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────
 // Send OTP email
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────
 const sendOTPEmail = async ({ to, name, otp, type = 'verify' }) => {
   const subjects = {
     verify: 'Verify your MentorBridge account',
     reset:  'Reset your MentorBridge password',
-    mentor: 'Your mentor verification status',
   };
 
   const html = `
@@ -99,33 +72,45 @@ const sendOTPEmail = async ({ to, name, otp, type = 'verify' }) => {
     </html>
   `;
 
-  // No transporter = log to console so dev can still test
-  if (!transporter) {
+  // No API key — log to console for local dev
+  if (!process.env.RESEND_API_KEY) {
     console.log('\n─────────────────────────────────────');
     console.log(`📧 OTP for ${to}: ${otp}`);
     console.log('─────────────────────────────────────\n');
-    return { success: true, preview: `OTP logged to console: ${otp}` };
+    return { success: true };
   }
 
   try {
-    const info = await transporter.sendMail({
-      from:    `"MentorBridge" <${process.env.SMTP_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from:    'MentorBridge <onboarding@resend.dev>', // use this until you add your domain
       to,
       subject: subjects[type] || subjects.verify,
       html,
     });
-    console.log(`✅ OTP email sent to ${to} — MessageId: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+
+    if (error) {
+      console.error(`❌ Resend error:`, error);
+      throw new Error(error.message || 'Failed to send email');
+    }
+
+    console.log(`✅ OTP email sent to ${to} — id: ${data.id}`);
+    return { success: true, id: data.id };
+
   } catch (err) {
     console.error(`❌ Failed to send OTP email to ${to}:`, err.message);
     throw new Error('Failed to send verification email. Please try again.');
   }
 };
 
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────
 // Send mentor verification result email
-// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────
 const sendVerificationResultEmail = async ({ to, name, approved }) => {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`📧 Verification ${approved ? 'APPROVED' : 'REJECTED'} email → ${to}`);
+    return { success: true };
+  }
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -161,17 +146,13 @@ const sendVerificationResultEmail = async ({ to, name, approved }) => {
     </html>
   `;
 
-  if (!transporter) {
-    console.log(`📧 Verification ${approved ? 'APPROVED' : 'REJECTED'} email → ${to}`);
-    return { success: true };
-  }
-
-  await transporter.sendMail({
-    from:    `"MentorBridge" <${process.env.SMTP_USER}>`,
+  await resend.emails.send({
+    from:    'MentorBridge <onboarding@resend.dev>',
     to,
     subject: approved ? '🎉 Your MentorBridge profile is verified!' : 'MentorBridge verification update',
     html,
   });
+
   return { success: true };
 };
 
