@@ -1,40 +1,54 @@
 const nodemailer = require('nodemailer');
 
-// Create transporter — uses Gmail or any SMTP
+// ─────────────────────────────────────────────────────────
+// Transporter — always use real SMTP when SMTP_USER is set
+// ─────────────────────────────────────────────────────────
 const createTransporter = () => {
-  // For development: use Ethereal (fake SMTP, no real emails sent)
-  // For production: swap with real SMTP credentials
-  if (process.env.NODE_ENV === 'development' && !process.env.SMTP_USER) {
-    return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      auth: {
-        user: process.env.ETHEREAL_USER || 'fake@ethereal.email',
-        pass: process.env.ETHEREAL_PASS || 'fakepass',
-      },
-    });
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.warn('⚠️  SMTP_USER or SMTP_PASS not set — emails will only be logged to console');
+    return null;
   }
 
-  return nodemailer.createTransport({
+  const transporter = nodemailer.createTransport({
     service: process.env.SMTP_SERVICE || 'gmail',
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
   });
+
+  // Verify on first use so errors are visible immediately
+  transporter.verify((err) => {
+    if (err) {
+      console.error('❌ SMTP connection failed:', err.message);
+      console.error('   → Check SMTP_USER and SMTP_PASS in your .env');
+      console.error('   → Gmail requires an App Password (not your account password)');
+      console.error('   → Get one at: https://myaccount.google.com/apppasswords');
+    } else {
+      console.log(`✅ SMTP ready — sending from ${process.env.SMTP_USER}`);
+    }
+  });
+
+  return transporter;
 };
 
+// Create once at module load time
+const transporter = createTransporter();
+
+// ─────────────────────────────────────────────────────────
 // Generate 6-digit OTP
-const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
+// ─────────────────────────────────────────────────────────
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
+// ─────────────────────────────────────────────────────────
 // Send OTP email
+// ─────────────────────────────────────────────────────────
 const sendOTPEmail = async ({ to, name, otp, type = 'verify' }) => {
   const subjects = {
-    verify:   'Verify your MentorBridge account',
-    reset:    'Reset your MentorBridge password',
-    mentor:   'Your mentor verification status',
+    verify: 'Verify your MentorBridge account',
+    reset:  'Reset your MentorBridge password',
+    mentor: 'Your mentor verification status',
   };
 
   const html = `
@@ -85,26 +99,32 @@ const sendOTPEmail = async ({ to, name, otp, type = 'verify' }) => {
     </html>
   `;
 
-  // In dev with no SMTP: just log the OTP
-  if (!process.env.SMTP_USER) {
+  // No transporter = log to console so dev can still test
+  if (!transporter) {
     console.log('\n─────────────────────────────────────');
     console.log(`📧 OTP for ${to}: ${otp}`);
     console.log('─────────────────────────────────────\n');
     return { success: true, preview: `OTP logged to console: ${otp}` };
   }
 
-  const transporter = createTransporter();
-  const info = await transporter.sendMail({
-    from:    `"MentorBridge" <${process.env.SMTP_USER}>`,
-    to,
-    subject: subjects[type],
-    html,
-  });
-
-  return { success: true, messageId: info.messageId };
+  try {
+    const info = await transporter.sendMail({
+      from:    `"MentorBridge" <${process.env.SMTP_USER}>`,
+      to,
+      subject: subjects[type] || subjects.verify,
+      html,
+    });
+    console.log(`✅ OTP email sent to ${to} — MessageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error(`❌ Failed to send OTP email to ${to}:`, err.message);
+    throw new Error('Failed to send verification email. Please try again.');
+  }
 };
 
+// ─────────────────────────────────────────────────────────
 // Send mentor verification result email
+// ─────────────────────────────────────────────────────────
 const sendVerificationResultEmail = async ({ to, name, approved }) => {
   const html = `
     <!DOCTYPE html>
@@ -129,10 +149,10 @@ const sendVerificationResultEmail = async ({ to, name, approved }) => {
           ${approved
             ? `<p>Great news! Your mentor profile has been <strong style="color:#00d4aa">verified</strong>.</p>
                <div class="badge">✓ Verified Mentor</div>
-               <p>Your profile will now appear with a verified badge and rank higher in search results. Mentees can now connect with you directly.</p>`
+               <p>Your profile will now appear with a verified badge and rank higher in search results.</p>`
             : `<p>After reviewing your submission, we were unable to verify your mentor profile at this time.</p>
                <div class="badge">✗ Not Approved</div>
-               <p>Please update your LinkedIn URL, company details, and bio, then resubmit. Make sure your LinkedIn profile is public and matches the information you provided.</p>`
+               <p>Please update your LinkedIn URL, company details, and bio, then resubmit.</p>`
           }
         </div>
         <div class="footer">© 2025 MentorBridge</div>
@@ -141,19 +161,17 @@ const sendVerificationResultEmail = async ({ to, name, approved }) => {
     </html>
   `;
 
-  if (!process.env.SMTP_USER) {
+  if (!transporter) {
     console.log(`📧 Verification ${approved ? 'APPROVED' : 'REJECTED'} email → ${to}`);
     return { success: true };
   }
 
-  const transporter = createTransporter();
   await transporter.sendMail({
     from:    `"MentorBridge" <${process.env.SMTP_USER}>`,
     to,
     subject: approved ? '🎉 Your MentorBridge profile is verified!' : 'MentorBridge verification update',
     html,
   });
-
   return { success: true };
 };
 

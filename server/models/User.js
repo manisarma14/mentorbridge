@@ -17,27 +17,36 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String, enum: ['mentee', 'mentor', 'admin'], default: 'mentee',
   },
-  avatar: { type: String, default: '' },
-  bio: { type: String, maxlength: 500, default: '' },
-  skills: [{ type: String, trim: true }],
-  goals:  [{ type: String, trim: true }],
+  avatar:   { type: String, default: '' },
+  bio:      { type: String, maxlength: 500, default: '' },
+  skills:   [{ type: String, trim: true }],
+  goals:    [{ type: String, trim: true }],
   location: { type: String, default: '' },
   linkedin: { type: String, default: '' },
 
   // Mentor-specific fields
-  experience:    { type: String, default: '' },
-  company:       { type: String, default: '' },
-  domain:        { type: String, default: '' },
-  hourlyRate:    { type: Number, default: 0 },
-  isEmailVerified:    { type: Boolean, default: false },
-  isVerified:         { type: Boolean, default: false },
-  verificationStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
-  verifiedAt:    { type: Date },
+  experience: { type: String, default: '' },
+  company:    { type: String, default: '' },
+  domain:     { type: String, default: '' },
+  hourlyRate: { type: Number, default: 0 },
+
+  // ── Email verification ──
+  isEmailVerified: { type: Boolean, default: false },
+  isVerified:      { type: Boolean, default: false },
+
+  // ✅ OTP fields — these were MISSING, causing OTP to never be saved
+  otp:       { type: String, select: false },  // the 6-digit code
+  otpExpiry: { type: Date,   select: false },  // expiry timestamp
+
+  verificationStatus: {
+    type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none',
+  },
+  verifiedAt: { type: Date },
+
   rating:        { type: Number, default: 0, min: 0, max: 5 },
   totalReviews:  { type: Number, default: 0 },
   totalSessions: { type: Number, default: 0 },
 
-  // Notifications
   notifications: [{
     message:   { type: String },
     type:      { type: String, enum: ['message', 'connection', 'system', 'update'], default: 'system' },
@@ -45,9 +54,10 @@ const userSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
   }],
 
-  bookmarks:    [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  isOnline:     { type: Boolean, default: false },
-  lastSeen:     { type: Date, default: Date.now },
+  bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  isOnline:  { type: Boolean, default: false },
+  lastSeen:  { type: Date, default: Date.now },
+
 }, { timestamps: true });
 
 // ── Hash password before save ──
@@ -67,6 +77,8 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
 userSchema.methods.toJSON = function() {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.otp;       // never expose OTP in API responses
+  delete obj.otpExpiry;
   return obj;
 };
 

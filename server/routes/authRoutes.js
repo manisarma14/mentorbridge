@@ -1,13 +1,17 @@
-const express = require('express');
+const express  = require('express');
 const { body } = require('express-validator');
-const router = express.Router();
+const router   = express.Router();
 
-const validate = require('../middleware/validate');
-
+const validate  = require('../middleware/validate');
+const { protect } = require('../middleware/authMiddleware');
 const {
   register,
   login,
   verifyEmail,
+  resendOTP,
+  getMe,
+  updateMe,
+  changePassword,
 } = require('../controllers/authController');
 
 // ================= REGISTER =================
@@ -43,5 +47,20 @@ router.post(
   validate,
   verifyEmail
 );
+
+// ================= RESEND OTP =================
+router.post(
+  '/resend-otp',
+  [
+    body('email').isEmail().withMessage('Valid email required'),
+  ],
+  validate,
+  resendOTP
+);
+
+// ================= PROTECTED =================
+router.get('/me',              protect, getMe);
+router.put('/me',              protect, updateMe);
+router.put('/change-password', protect, changePassword);
 
 module.exports = router;

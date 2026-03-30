@@ -8,7 +8,7 @@ import './Auth.css'
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate  = useNavigate()
-  const [form,    setForm]    = useState({ email:'', password:'' })
+  const [form,    setForm]    = useState({ email: '', password: '' })
   const [errors,  setErrors]  = useState({})
   const [loading, setLoading] = useState(false)
   const [apiErr,  setApiErr]  = useState('')
@@ -23,7 +23,7 @@ export default function LoginPage() {
   const onChange = e => {
     const { name, value } = e.target
     setForm(p => ({ ...p, [name]: value }))
-    if (errors[name]) setErrors(p => ({ ...p, [name]:'' }))
+    if (errors[name]) setErrors(p => ({ ...p, [name]: '' }))
     setApiErr('')
   }
 
@@ -37,13 +37,29 @@ export default function LoginPage() {
       login(data.user, data.token)
       navigate('/dashboard')
     } catch (err) {
-      // If email not verified, server sends emailUnverified flag
-      if (err?.emailUnverified || (typeof err === 'string' && err.includes('verify'))) {
-        navigate('/verify-email', { state: { email: form.email } })
+      // Check all possible shapes for the emailUnverified flag
+      const isUnverified =
+        err?.emailUnverified ||
+        err?.data?.emailUnverified
+
+      if (isUnverified) {
+        // Controller already sent a fresh OTP — redirect to verify page
+        navigate('/verify-email', {
+          state: { email: err?.email || err?.data?.email || form.email }
+        })
         return
       }
-      setApiErr(typeof err === 'string' ? err : 'Invalid email or password')
-    } finally { setLoading(false) }
+
+      // Show real server message if available
+      const msg =
+        typeof err === 'string'
+          ? err
+          : err?.message || err?.data?.message || 'Invalid email or password.'
+
+      setApiErr(msg)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -55,7 +71,7 @@ export default function LoginPage() {
       </div>
       <div className="auth-container">
         <Link to="/" className="auth-brand">
-          <span style={{color:'var(--accent)',fontSize:'1.4rem'}}>⬡</span>
+          <span style={{ color: 'var(--accent)', fontSize: '1.4rem' }}>⬡</span>
           <span>MentorBridge</span>
         </Link>
 
@@ -68,8 +84,18 @@ export default function LoginPage() {
           {apiErr && <div className="auth-alert"><span>⚠</span> {apiErr}</div>}
 
           <form onSubmit={onSubmit} className="auth-form" noValidate>
-            <Input label="Email"    type="email"    name="email"    placeholder="you@example.com" value={form.email}    onChange={onChange} error={errors.email}    icon="◎" autoComplete="email"/>
-            <Input label="Password" type="password" name="password" placeholder="Your password"   value={form.password} onChange={onChange} error={errors.password} icon="◈" autoComplete="current-password"/>
+            <Input
+              label="Email" type="email" name="email"
+              placeholder="you@example.com"
+              value={form.email} onChange={onChange}
+              error={errors.email} icon="◎" autoComplete="email"
+            />
+            <Input
+              label="Password" type="password" name="password"
+              placeholder="Your password"
+              value={form.password} onChange={onChange}
+              error={errors.password} icon="◈" autoComplete="current-password"
+            />
 
             <div className="auth-row">
               <label className="remember"><input type="checkbox"/> Remember me</label>
