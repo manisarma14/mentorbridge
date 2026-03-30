@@ -175,7 +175,11 @@ const verifyEmail = async (req, res, next) => {
 
     const emailLower = normalizeEmail(email);
 
-    const record = await OTP.findOne({ email: emailLower, type: 'verify', used: false });
+    const record = await OTP.findOne({
+  email: emailLower,
+  type: 'verify',
+  used: false
+}).sort({ createdAt: -1 });
 
     if (!record) {
       return res.status(400).json({
