@@ -6,17 +6,14 @@ const { generateOTP, sendOTPEmail } = require('../services/emailService');
 
 const OTP_TTL_MINUTES = 10;
 
-// ─────────────────────────────────────
-// Helper: normalize email
-// ─────────────────────────────────────
+// Normalize email
 const normalizeEmail = (email) => email.toLowerCase().trim();
 
 // ─────────────────────────────────────
-// Helper: create OTP record and send email
-// Always awaited now so errors surface properly
+// Create & Send OTP (FIXED)
 // ─────────────────────────────────────
 const createAndSendOTP = async (email, name, type = 'verify') => {
-  // Delete any existing OTPs for this email+type
+  // Always delete old OTPs
   await OTP.deleteMany({ email, type });
 
   const otp       = generateOTP();
@@ -24,186 +21,170 @@ const createAndSendOTP = async (email, name, type = 'verify') => {
 
   await OTP.create({ email, otp, type, expiresAt });
 
-  // Send email — errors are caught by caller
   await sendOTPEmail({ to: email, name, otp, type });
 
-  console.log(`✅ OTP created and sent to ${email}`);
+  console.log(`✅ OTP sent to ${email}: ${otp}`);
 };
 
 // ─────────────────────────────────────
-// @route POST /api/auth/register
+// REGISTER
 // ─────────────────────────────────────
 const register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'All fields are required.' });
+      return res.status(400).json({ success: false, message: 'All fields required' });
     }
 
     const emailLower = normalizeEmail(email);
-    const existing   = await User.findOne({ email: emailLower });
+    const existing = await User.findOne({ email: emailLower });
 
-    // ── Existing user ──
     if (existing) {
       if (existing.isEmailVerified) {
         return res.status(400).json({
           success: false,
-          message: 'Email already registered. Please log in.',
+          message: 'Email already registered. Please login.',
         });
       }
 
-      // Unverified — update and resend OTP
-      existing.name     = name;
-      existing.password = password; // pre-save hook hashes it
-      existing.role     = role || existing.role;
+      existing.name = name;
+      existing.password = password;
+      existing.role = role || existing.role;
       await existing.save();
 
-      try {
-        await createAndSendOTP(emailLower, name, 'verify');
-      } catch (emailErr) {
-        console.error('OTP send failed:', emailErr.message);
-        // Still return success — user exists, they can use resend
-      }
+      await createAndSendOTP(emailLower, name);
 
-      return res.status(200).json({
+      return res.json({
         success: true,
-        resent:  true,
-        message: 'Account exists but not verified. A new OTP has been sent to your email.',
-        email:   emailLower,
+        message: 'Account exists but not verified. OTP sent again.',
+        email: emailLower,
       });
     }
 
-    // ── New user ──
     const user = await User.create({
       name,
-      email:           emailLower,
-      password,        // pre-save hook in User.js hashes this
-      role:            role || 'mentee',
+      email: emailLower,
+      password,
+      role: role || 'mentee',
       isEmailVerified: false,
     });
 
-    try {
-      await createAndSendOTP(emailLower, name, 'verify');
-    } catch (emailErr) {
-      console.error('OTP send failed:', emailErr.message);
-      // User created successfully — they can use resend
-    }
+    await createAndSendOTP(emailLower, name);
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
-      message: 'Account created! Check your email for the OTP.',
-      email:   emailLower,
+      message: 'Registered successfully. OTP sent.',
+      email: emailLower,
     });
 
   } catch (err) {
+    console.error("REGISTER ERROR:", err);
     next(err);
   }
 };
 
 // ─────────────────────────────────────
-// @route POST /api/auth/login
+// LOGIN
 // ─────────────────────────────────────
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required.' });
-    }
-
     const emailLower = normalizeEmail(email);
-    const user       = await User.findOne({ email: emailLower }).select('+password');
+    const user = await User.findOne({ email: emailLower }).select('+password');
 
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // ── Check password first ──
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // ── Check email verified AFTER password ──
     if (!user.isEmailVerified) {
-      // Send fresh OTP in background
-      createAndSendOTP(emailLower, user.name, 'verify').catch(console.error);
+      await createAndSendOTP(emailLower, user.name);
 
       return res.status(403).json({
-        success:         false,
+        success: false,
         emailUnverified: true,
-        email:           emailLower,
-        message:         'Please verify your email. A new OTP has been sent.',
+        email: emailLower,
+        message: 'Email not verified. OTP sent again.',
       });
     }
 
     const token = generateToken(user._id);
 
-    return res.json({
+    res.json({
       success: true,
       token,
-      user: {
-        id:              user._id,
-        name:            user.name,
-        email:           user.email,
-        role:            user.role,
-        isEmailVerified: user.isEmailVerified,
-        bio:             user.bio,
-        skills:          user.skills,
-        company:         user.company,
-        location:        user.location,
-        avatar:          user.avatar,
-      },
+      user,
     });
 
   } catch (err) {
+    console.error("LOGIN ERROR:", err);
     next(err);
   }
 };
 
 // ─────────────────────────────────────
-// @route POST /api/auth/verify-email
+// VERIFY EMAIL (FULLY FIXED)
 // ─────────────────────────────────────
 const verifyEmail = async (req, res, next) => {
   try {
+    console.log("VERIFY REQUEST:", req.body);
+
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.status(400).json({ success: false, message: 'Email and OTP are required.' });
+      return res.status(400).json({
+        success: false,
+        message: 'Email and OTP required',
+      });
     }
 
     const emailLower = normalizeEmail(email);
 
+    // Always fetch latest OTP
     const record = await OTP.findOne({
-  email: emailLower,
-  type: 'verify',
-  used: false
-}).sort({ createdAt: -1 });
+      email: emailLower,
+      type: 'verify',
+      used: false,
+    }).sort({ createdAt: -1 });
+
+    console.log("DB OTP:", record);
 
     if (!record) {
       return res.status(400).json({
         success: false,
-        message: 'No OTP found. Please request a new one.',
+        message: 'No OTP found',
       });
     }
 
-    if (!record.isValid()) {
+    // Manual validation (avoid schema method bugs)
+    if (record.used || record.expiresAt < new Date()) {
       return res.status(400).json({
         success: false,
-        message: 'OTP has expired. Please request a new one.',
+        message: 'OTP expired',
       });
     }
 
-    if (record.otp !== otp.trim()) {
-      return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
+    const incomingOtp = String(otp).trim();
+
+    if (record.otp !== incomingOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP',
+      });
     }
 
-    // Mark OTP used
+    // Mark used
     record.used = true;
     await record.save();
 
-    // Mark user verified
+    // Verify user
     const user = await User.findOneAndUpdate(
       { email: emailLower },
       { isEmailVerified: true },
@@ -211,123 +192,64 @@ const verifyEmail = async (req, res, next) => {
     );
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
     }
 
     const token = generateToken(user._id);
 
-    return res.json({
+    res.json({
       success: true,
-      message: 'Email verified successfully!',
+      message: 'Email verified successfully',
       token,
-      user: {
-        id:              user._id,
-        name:            user.name,
-        email:           user.email,
-        role:            user.role,
-        isEmailVerified: user.isEmailVerified,
-      },
+      user,
     });
 
   } catch (err) {
-    next(err);
+    console.error("VERIFY ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message || "Server error",
+    });
   }
 };
 
 // ─────────────────────────────────────
-// @route POST /api/auth/resend-otp
+// RESEND OTP
 // ─────────────────────────────────────
 const resendOTP = async (req, res, next) => {
   try {
     const { email } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required.' });
-    }
-
     const emailLower = normalizeEmail(email);
-    const user       = await User.findOne({ email: emailLower });
+    const user = await User.findOne({ email: emailLower });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with this email.' });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     if (user.isEmailVerified) {
-      return res.status(400).json({ success: false, message: 'Email already verified. Please log in.' });
+      return res.status(400).json({ success: false, message: 'Already verified' });
     }
 
-    // Rate limit: check if an OTP was sent in the last 55 seconds
-    const recent = await OTP.findOne({ email: emailLower, type: 'verify', used: false })
-      .sort({ createdAt: -1 });
+    await createAndSendOTP(emailLower, user.name);
 
-    if (recent) {
-      const secondsAgo = (Date.now() - new Date(recent.createdAt)) / 1000;
-      if (secondsAgo < 55) {
-        return res.status(429).json({
-          success: false,
-          message: `Please wait ${Math.ceil(55 - secondsAgo)} seconds before requesting another OTP.`,
-        });
-      }
-    }
-
-    await createAndSendOTP(emailLower, user.name, 'verify');
-
-    return res.json({ success: true, message: 'New OTP sent to your email.' });
+    res.json({ success: true, message: 'OTP resent successfully' });
 
   } catch (err) {
+    console.error("RESEND OTP ERROR:", err);
     next(err);
   }
 };
 
 // ─────────────────────────────────────
-// @route GET /api/auth/me
+// EXPORTS
 // ─────────────────────────────────────
-const getMe = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
-    res.json({ success: true, user });
-  } catch (err) {
-    next(err);
-  }
+module.exports = {
+  register,
+  login,
+  verifyEmail,
+  resendOTP,
 };
-
-// ─────────────────────────────────────
-// @route PUT /api/auth/me
-// ─────────────────────────────────────
-const updateMe = async (req, res, next) => {
-  try {
-    const allowed = ['name','bio','location','linkedin','company','experience','domain','skills','goals','avatar'];
-    const updates = {};
-    allowed.forEach(k => { if (req.body[k] !== undefined) updates[k] = req.body[k]; });
-
-    const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true, runValidators: true });
-    res.json({ success: true, user });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// ─────────────────────────────────────
-// @route PUT /api/auth/change-password
-// ─────────────────────────────────────
-const changePassword = async (req, res, next) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const user = await User.findById(req.user.id).select('+password');
-
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
-    }
-
-    user.password = newPassword; // pre-save hook hashes it
-    await user.save();
-
-    res.json({ success: true, message: 'Password updated successfully.' });
-  } catch (err) {
-    next(err);
-  }
-};
-
-module.exports = { register, login, verifyEmail, resendOTP, getMe, updateMe, changePassword };
