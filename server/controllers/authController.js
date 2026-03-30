@@ -1,3 +1,4 @@
+const bcrypt        = require('bcryptjs');
 const User          = require('../models/User');
 const OTP           = require('../models/OTP');
 const generateToken = require('../utils/generateToken');
@@ -5,7 +6,10 @@ const { generateOTP, sendOTPEmail } = require('../services/emailService');
 
 const OTP_TTL_MINUTES = 10;
 
-// 🔥 Non-blocking OTP creator (FIXED)
+// ================= HELPER =================
+const normalizeEmail = (email) => email.toLowerCase().trim();
+
+// 🔥 Non-blocking OTP creator
 const createAndSendOTP = async (email, name, type = 'verify') => {
   try {
     await OTP.deleteMany({ email, type });
@@ -15,7 +19,7 @@ const createAndSendOTP = async (email, name, type = 'verify') => {
 
     await OTP.create({ email, otp, type, expiresAt });
 
-    // 🚀 Run email in background (IMPORTANT FIX)
+    // 🚀 Send email in background (non-blocking)
     sendOTPEmail({ to: email, name, otp, type })
       .catch(err => console.error("Email send error:", err));
 
@@ -29,9 +33,24 @@ const register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
 
-    const existing = await User.findOne({ email });
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
 
+    const emailLower = normalizeEmail(email);
+
+    const existing = await User.findOne({ email: emailLower });
+
+    // 🔐 Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // ================= EXISTING USER =================
     if (existing) {
+
+      // If already verified → block
       if (existing.isEmailVerified) {
         return res.status(400).json({
           success: false,
@@ -39,39 +58,45 @@ const register = async (req, res, next) => {
         });
       }
 
-      existing.name     = name;
-      existing.password = password;
-      existing.role     = role || existing.role;
+      // Update unverified user
+      existing.name = name;
+      existing.password = hashedPassword;
+      existing.role = role || existing.role;
+      existing.isEmailVerified = false;
+
       await existing.save();
 
-      createAndSendOTP(email, name, 'verify'); // ✅ non-blocking
+      createAndSendOTP(emailLower, name, 'verify');
 
       return res.status(200).json({
         success: true,
         message: 'Account exists but not verified. OTP resent.',
-        email,
+        email: emailLower,
         userId: existing._id,
       });
     }
 
+    // ================= NEW USER =================
     const user = await User.create({
       name,
-      email,
-      password,
+      email: emailLower,
+      password: hashedPassword,
       role: role || 'mentee',
       isEmailVerified: false,
     });
 
-    createAndSendOTP(email, name, 'verify'); // ✅ non-blocking
+    createAndSendOTP(emailLower, name, 'verify');
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Account created! Check email for OTP.',
-      email,
+      email: emailLower,
       userId: user._id,
     });
 
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ================= LOGIN =================
@@ -79,29 +104,51 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select('+password');
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
 
-    if (!user || !(await user.matchPassword(password))) {
+    const emailLower = normalizeEmail(email);
+
+    const user = await User.findOne({ email: emailLower }).select('+password');
+
+    // ❌ User not found
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password',
       });
     }
 
+    // 🔐 Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
+    }
+
+    // ⚠️ Email not verified
     if (!user.isEmailVerified) {
-      createAndSendOTP(email, user.name, 'verify'); // ✅ non-blocking
+      createAndSendOTP(emailLower, user.name, 'verify');
 
       return res.status(403).json({
         success: false,
         emailUnverified: true,
-        email,
+        email: emailLower,
         message: 'Please verify your email. OTP sent.',
       });
     }
 
+    // 🔐 Generate token
     const token = generateToken(user._id);
 
-    res.json({
+    return res.json({
       success: true,
       token,
       user: {
@@ -113,7 +160,9 @@ const login = async (req, res, next) => {
       },
     });
 
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ================= VERIFY EMAIL =================
@@ -121,8 +170,17 @@ const verifyEmail = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
 
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required"
+      });
+    }
+
+    const emailLower = normalizeEmail(email);
+
     const record = await OTP.findOne({
-      email: email.toLowerCase(),
+      email: emailLower,
       type: 'verify',
       used: false
     });
@@ -141,25 +199,29 @@ const verifyEmail = async (req, res, next) => {
       });
     }
 
+    // ✅ Mark OTP used
     record.used = true;
     await record.save();
 
+    // ✅ Verify user
     const user = await User.findOneAndUpdate(
-      { email: email.toLowerCase() },
+      { email: emailLower },
       { isEmailVerified: true },
       { new: true }
     );
 
     const token = generateToken(user._id);
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Email verified successfully!',
       token,
       user,
     });
 
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // ================= EXPORT =================
