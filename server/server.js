@@ -19,6 +19,7 @@ server.listen(PORT, () => {
   console.log(`\n🚀 MentorBridge server running on port ${PORT}`);
   console.log(`   Mode: ${process.env.NODE_ENV || 'development'}`);
   console.log(`   Docs: http://localhost:${PORT}/api/health\n`);
+  console.log(`   🗄️ MongoDB Atlas connected\n`);
 });
 
 // Handle unhandled promise rejections

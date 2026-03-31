@@ -30,6 +30,8 @@ function PublicRoute({ children }) {
 }
 
 export default function App() {
+  console.log('🎯 Full MentorBridge App loading...')
+  
   return (
     <AuthProvider>
       <SocketProvider>

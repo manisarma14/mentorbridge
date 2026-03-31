@@ -29,16 +29,46 @@ const createAndSendOTP = async (email, name, type = 'verify') => {
 // ─────────────────────────────────────
 const register = async (req, res, next) => {
   try {
+    console.log('📝 Registration attempt:', { email: req.body.email, name: req.body.name });
+    
     const { name, email, password, role } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'All fields required' });
+    // Enhanced validation
+    if (!name || !name.trim()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Name is required and cannot be empty' 
+      });
+    }
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required and cannot be empty' 
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please provide a valid email address' 
+      });
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password must be at least 6 characters long' 
+      });
     }
 
     const emailLower = normalizeEmail(email);
     const existing = await User.findOne({ email: emailLower });
 
     if (existing) {
+      console.log('👤 User already exists:', { email: emailLower, verified: existing.isEmailVerified });
+      
       if (existing.isEmailVerified) {
         return res.status(400).json({
           success: false,
@@ -46,20 +76,25 @@ const register = async (req, res, next) => {
         });
       }
 
+      // Update existing user but not verified
       existing.name = name;
       existing.password = password;
       existing.role = role || existing.role;
       await existing.save();
 
+      console.log('📧 Sending OTP to existing unverified user');
       await createAndSendOTP(emailLower, name);
 
       return res.json({
         success: true,
         message: 'Account exists but not verified. OTP sent again.',
         email: emailLower,
+        requiresVerification: true,
       });
     }
 
+    console.log('👤 Creating new user:', { email: emailLower, name, role: role || 'mentee' });
+    
     const user = await User.create({
       name,
       email: emailLower,
@@ -68,17 +103,22 @@ const register = async (req, res, next) => {
       isEmailVerified: false,
     });
 
+    console.log('📧 Sending OTP to new user');
     await createAndSendOTP(emailLower, name);
 
     res.status(201).json({
       success: true,
       message: 'Registered successfully. OTP sent.',
       email: emailLower,
+      requiresVerification: true,
     });
 
   } catch (err) {
     console.error("REGISTER ERROR:", err);
-    next(err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message || 'Registration failed. Please try again.' 
+    });
   }
 };
 
@@ -87,22 +127,48 @@ const register = async (req, res, next) => {
 // ─────────────────────────────────────
 const login = async (req, res, next) => {
   try {
+    console.log('🔐 Login attempt:', { email: req.body.email });
+    
     const { email, password } = req.body;
+
+    // Enhanced validation
+    if (!email || !email.trim()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required' 
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password is required' 
+      });
+    }
 
     const emailLower = normalizeEmail(email);
     const user = await User.findOne({ email: emailLower }).select('+password');
 
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      console.log('❌ User not found:', { email: emailLower });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid email or password' 
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      console.log('❌ Password mismatch:', { email: emailLower });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid email or password' 
+      });
     }
 
     if (!user.isEmailVerified) {
+      console.log('📧 User not verified, sending OTP:', { email: emailLower });
       await createAndSendOTP(emailLower, user.name);
 
       return res.status(403).json({
@@ -110,20 +176,33 @@ const login = async (req, res, next) => {
         emailUnverified: true,
         email: emailLower,
         message: 'Email not verified. OTP sent again.',
+        requiresVerification: true,
       });
     }
 
     const token = generateToken(user._id);
+    console.log('✅ Login successful:', { email: emailLower, userId: user._id });
 
     res.json({
       success: true,
+      message: 'Login successful',
       token,
-      user,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        avatar: user.avatar,
+      },
     });
 
   } catch (err) {
     console.error("LOGIN ERROR:", err);
-    next(err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message || 'Login failed. Please try again.' 
+    });
   }
 };
 
