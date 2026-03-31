@@ -10,8 +10,15 @@ console.log('📦 Environment:', {
   MODE: import.meta.env.MODE
 })
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+// Simple test to ensure React is working
+const root = document.getElementById('root')
+if (!root) {
+  console.error('❌ Root element not found!')
+} else {
+  console.log('✅ Root element found, mounting React app...')
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}
