@@ -327,10 +327,45 @@ const resendOTP = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────
-// DUMMY FIX FUNCTIONS (IMPORTANT)
+// GET CURRENT USER
 // ─────────────────────────────────────
 const getMe = async (req, res) => {
-  res.json({ success: true, user: req.user || null });
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        avatar: user.avatar,
+        bio: user.bio,
+        linkedin: user.linkedin,
+        company: user.company,
+        experience: user.experience,
+        skills: user.skills,
+        hourlyRate: user.hourlyRate,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (err) {
+    console.error("GET ME ERROR:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get user information' 
+    });
+  }
 };
 
 const updateMe = async (req, res) => {
