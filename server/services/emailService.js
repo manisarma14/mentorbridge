@@ -75,6 +75,7 @@ const sendOTPEmail = async ({ to, name, otp, type = 'verify' }) => {
   // ✅ FIXED: Handle Resend testing limitation
   const allowedTestEmails = [
     'manisarma1401@gmail.com',
+    'mani.sukaranam@gmail.com',
     'manisarma@manisarma-macbook-air.local'
   ];
   
@@ -89,15 +90,17 @@ const sendOTPEmail = async ({ to, name, otp, type = 'verify' }) => {
 
   // For testing, only send to allowed emails
   if (!isTestEmail) {
-    console.log('\n─────────────────────────────────────');
-    console.log(`📧 MOCK EMAIL (Testing) - OTP for ${to}: ${otp}`);
-    console.log('─────────────────────────────────────\n');
+    console.log('\n═════════════════════════════════════════════════════════════════');
+    console.log(`📧 EMAIL OTP FOR ${to}: ${otp}`);
+    console.log(`👤 NAME: ${name}`);
+    console.log(`🔒 TYPE: ${type}`);
+    console.log('═════════════════════════════════════════════════════════════════\n');
     return { success: true, mock: true };
   }
 
   try {
     const { data, error } = await resend.emails.send({
-      from:    'MentorBridge <noreply@mentorbridge.app>', // Production domain
+      from:    'MentorBridge <onboarding@resend.dev>', // Resend testing domain
       to,
       subject: subjects[type] || subjects.verify,
       html,
@@ -162,7 +165,7 @@ const sendVerificationResultEmail = async ({ to, name, approved }) => {
   `;
 
   await resend.emails.send({
-    from:    'MentorBridge <noreply@mentorbridge.app>',
+    from:    'MentorBridge <onboarding@resend.dev>',
     to,
     subject: approved ? '🎉 Your MentorBridge profile is verified!' : 'MentorBridge verification update',
     html,
