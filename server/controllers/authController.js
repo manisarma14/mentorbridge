@@ -136,6 +136,7 @@ const verifyEmail = async (req, res) => {
 
     const emailLower = normalizeEmail(email);
 
+    // ✅ FIXED: Get only the LATEST unused OTP
     const record = await OTP.findOne({
       email: emailLower,
       type: 'verify',
@@ -143,25 +144,36 @@ const verifyEmail = async (req, res) => {
     }).sort({ createdAt: -1 });
 
     if (!record) {
-      return res.status(400).json({ success: false, message: 'No OTP found' });
+      return res.status(400).json({ success: false, message: 'No valid OTP found' });
     }
 
-    if (record.used || record.expiresAt < new Date()) {
-      return res.status(400).json({ success: false, message: 'OTP expired' });
+    // ✅ FIXED: Check expiry first
+    if (record.expiresAt < new Date()) {
+      return res.status(400).json({ success: false, message: 'OTP has expired' });
     }
 
-    if (record.otp !== String(otp).trim()) {
+    // ✅ FIXED: Ensure both are strings and trim
+    const submittedOTP = String(otp).trim();
+    const storedOTP = String(record.otp).trim();
+
+    if (submittedOTP !== storedOTP) {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
+    // Mark OTP as used
     record.used = true;
     await record.save();
 
+    // Verify user email
     const user = await User.findOneAndUpdate(
       { email: emailLower },
       { isEmailVerified: true },
       { new: true }
     );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
 
     const token = generateToken(user._id);
 
@@ -169,12 +181,19 @@ const verifyEmail = async (req, res) => {
       success: true,
       message: 'Email verified successfully',
       token,
-      user,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        avatar: user.avatar,
+      },
     });
 
   } catch (err) {
     console.error("VERIFY ERROR:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: "Server error during verification" });
   }
 };
 
