@@ -72,12 +72,27 @@ const sendOTPEmail = async ({ to, name, otp, type = 'verify' }) => {
     </html>
   `;
 
-  // No API key — log to console for local dev
+  // ✅ FIXED: Handle Resend testing limitation
+  const allowedTestEmails = [
+    'manisarma1401@gmail.com',
+    'manisarma@manisarma-macbook-air.local'
+  ];
+  
+  const isTestEmail = allowedTestEmails.includes(to);
+  
   if (!process.env.RESEND_API_KEY) {
     console.log('\n─────────────────────────────────────');
     console.log(`📧 OTP for ${to}: ${otp}`);
     console.log('─────────────────────────────────────\n');
     return { success: true };
+  }
+
+  // For testing, only send to allowed emails
+  if (!isTestEmail) {
+    console.log('\n─────────────────────────────────────');
+    console.log(`📧 MOCK EMAIL (Testing) - OTP for ${to}: ${otp}`);
+    console.log('─────────────────────────────────────\n');
+    return { success: true, mock: true };
   }
 
   try {
