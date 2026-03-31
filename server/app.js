@@ -18,7 +18,11 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 app.use(cors({
-  origin: true,
+  origin: [
+    'http://localhost:5173',
+    'https://mentorbridge-frontend.vercel.app',
+    'https://mentorbridge-9oze.onrender.com'
+  ],
   credentials: true,
 }));
 

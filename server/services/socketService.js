@@ -9,7 +9,11 @@ const onlineUsers = new Map(); // userId -> socketId
 const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: [
+        'http://localhost:5173',
+        'https://mentorbridge-frontend.vercel.app',
+        'https://mentorbridge-9oze.onrender.com'
+      ],
       methods: ['GET', 'POST'],
       credentials: true,
     },

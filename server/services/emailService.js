@@ -97,7 +97,7 @@ const sendOTPEmail = async ({ to, name, otp, type = 'verify' }) => {
 
   try {
     const { data, error } = await resend.emails.send({
-      from:    'MentorBridge <onboarding@resend.dev>', // use this until you add your domain
+      from:    'MentorBridge <noreply@mentorbridge.app>', // Production domain
       to,
       subject: subjects[type] || subjects.verify,
       html,
@@ -162,7 +162,7 @@ const sendVerificationResultEmail = async ({ to, name, approved }) => {
   `;
 
   await resend.emails.send({
-    from:    'MentorBridge <onboarding@resend.dev>',
+    from:    'MentorBridge <noreply@mentorbridge.app>',
     to,
     subject: approved ? '🎉 Your MentorBridge profile is verified!' : 'MentorBridge verification update',
     html,

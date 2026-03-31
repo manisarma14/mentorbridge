@@ -1,5 +1,29 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
-  ]
+  "version": 2,
+  "name": "mentorbridge-frontend",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_API_URL": "https://mentorbridge-9oze.onrender.com/api",
+    "VITE_SOCKET_URL": "https://mentorbridge-9oze.onrender.com"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://mentorbridge-9oze.onrender.com/api",
+      "VITE_SOCKET_URL": "https://mentorbridge-9oze.onrender.com"
+    }
+  }
 }
