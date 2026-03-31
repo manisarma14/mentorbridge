@@ -13,7 +13,7 @@ export function SocketProvider({ children }) {
   useEffect(() => {
     if (!isAuthenticated || !token) return
 
-    const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001', {
+    const socket = io(import.meta.env.VITE_SOCKET_URL || 'https://mentorbridge-9oze.onrender.com', {
       auth: { token },
       transports: ['websocket', 'polling'],
     })
