@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3001/api",
+  baseURL: "https://mentorbridge-9oze.onrender.com/api",
   timeout: 120000,
   headers: { 'Content-Type': 'application/json' },
 })
@@ -16,13 +16,12 @@ api.interceptors.request.use(config => {
 })
 
 // ─────────────────────────────
-// RESPONSE INTERCEPTOR (FIXED)
+// RESPONSE INTERCEPTOR
 // ─────────────────────────────
 api.interceptors.response.use(
   res => res.data,
   err => {
-    console.log("🔥 AXIOS ERROR:", err);   // ✅ ADD THIS
-
+    console.log("🔥 AXIOS ERROR:", err)
     const data = err.response?.data
 
     // ⏱ Timeout (Render cold start)
@@ -42,12 +41,11 @@ api.interceptors.response.use(
       return Promise.reject(data)
     }
 
-    // ✅ SHOW REAL BACKEND ERROR
+    // ✅ Real backend error
     if (data?.message) {
       return Promise.reject(data.message)
     }
 
-    // ❗ fallback (but now rare)
     return Promise.reject(err.message || 'Unexpected error occurred')
   }
 )
