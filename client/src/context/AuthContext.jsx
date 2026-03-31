@@ -13,16 +13,29 @@ export function AuthProvider({ children }) {
   // Rehydrate user from server on mount
   useEffect(() => {
     const verify = async () => {
-      if (token) {
+      if (token && token !== 'null' && token !== 'undefined') {
         try {
+          console.log('🔍 Verifying stored token...')
           const data = await api.get('/auth/me')
-          setUser(data.user)
-        } catch {
+          if (data.success && data.user) {
+            setUser(data.user)
+            console.log('✅ User verified:', data.user.email)
+          } else {
+            console.log('❌ Invalid token response')
+            setUser(null)
+            setToken(null)
+            localStorage.removeItem('mb_user')
+            localStorage.removeItem('mb_token')
+          }
+        } catch (error) {
+          console.error('❌ Token verification failed:', error)
           setUser(null)
           setToken(null)
           localStorage.removeItem('mb_user')
           localStorage.removeItem('mb_token')
         }
+      } else {
+        console.log('🔓 No token found, skipping verification')
       }
       setLoading(false)
     }
