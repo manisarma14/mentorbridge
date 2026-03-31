@@ -15,7 +15,8 @@ export function AuthProvider({ children }) {
     const verify = async () => {
       if (token && token !== 'null' && token !== 'undefined') {
         try {
-          console.log('🔍 Verifying stored token...')
+          console.log('� MentorBridge AuthContext Loading...')
+          console.log('📦 Using localhost:3001 API')
           const data = await api.get('/auth/me')
           if (data.success && data.user) {
             setUser(data.user)

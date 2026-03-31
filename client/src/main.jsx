@@ -3,12 +3,9 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-console.log('🚀 MentorBridge Frontend Loading...')
-console.log('📦 Environment:', {
-  VITE_API_URL: import.meta.env.VITE_API_URL,
-  VITE_SOCKET_URL: import.meta.env.VITE_SOCKET_URL,
-  MODE: import.meta.env.MODE
-})
+console.log('🚀 MentorBridge Starting...')
+console.log('📦 API URL:', import.meta.env.VITE_API_URL)
+console.log('📦 Socket URL:', import.meta.env.VITE_SOCKET_URL)
 
 // Simple test to ensure React is working
 const root = document.getElementById('root')
