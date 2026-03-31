@@ -50,6 +50,13 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // ─────────────────────────────────────
+// 🌐 ROOT ROUTE (CRITICAL FOR RENDER)
+// ─────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.send('MentorBridge Backend Running 🚀');
+});
+
+// ─────────────────────────────────────
 // 🏥 Health Check
 // ─────────────────────────────────────
 app.get('/api/health', (_req, res) => {
